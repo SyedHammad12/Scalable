@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Photo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .upload-container {
+            width: 100%;
+            max-width: 500px;
+            padding: 40px 30px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .upload-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.1));
+            border-radius: 10px;
+            z-index: -1;
+        }
+
+        h2 {
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #262626;
+        }
+
+        .form-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group input[type="text"], .form-group input[type="file"] {
+            width: 100%;
+            padding: 14px;
+            margin: 5px 0;
+            border: 1px solid #dbdbdb;
+            border-radius: 8px;
+            background-color: #f2f2f2;
+            font-size: 14px;
+            color: #333;
+            transition: 0.3s ease;
+        }
+
+        .form-group input[type="text"]:focus, .form-group input[type="file"]:focus {
+            border-color: #3897f0;
+            background-color: #ffffff;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 500;
+            background-color: #3897f0;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #1671c1;
+        }
+
+        .back-link {
+            color: #3897f0;
+            font-size: 14px;
+            text-decoration: none;
+            margin-top: 20px;
+            font-weight: 500;
+            transition: 0.3s ease;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .form-group input[type="file"] {
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Instagram_logo_2016.svg/800px-Instagram_logo_2016.svg.png') center center no-repeat;
+            background-size: 50px;
+            cursor: pointer;
+            padding-left: 70px;
+            padding-right: 10px;
+        }
+
+        .form-group input[type="text"], button {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group input[type="text"]:hover, button:hover {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .preview-container {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .preview-image {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-title-caption {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 500;
+            color: #262626;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h2>Upload a New Photo</h2>
+
+        <!-- Flash message -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="text" name="title" placeholder="Photo Title" required><br>
+                <input type="text" name="caption" placeholder="Photo Caption" required><br>
+                <input type="file" name="image" accept="image/*" required><br>
+            </div>
+            <button type="submit">Upload</button>
+        </form>
+
+        <div class="preview-container">
+            <img class="preview-image" id="imagePreview" src="#" alt="Preview" style="display:none;">
+            <div class="image-title-caption" id="imageTitleCaption">
+                <!-- Dynamic preview of image title and caption -->
+            </div>
+        </div>
+
+        <a class="back-link" href="/">Back to Home</a>
+    </div>
+
+    <script>
+        // Image preview functionality
+        document.querySelector('input[type="file"]').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    document.getElementById('imagePreview').style.display = 'block';
+                    document.getElementById('imagePreview').src = event.target.result;
+                    document.getElementById('imageTitleCaption').textContent = document.querySelector('input[name="title"]').value + ' - ' + document.querySelector('input[name="caption"]').value;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

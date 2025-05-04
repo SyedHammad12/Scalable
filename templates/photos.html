@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploaded Photos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* General Body Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fafafa;
+            font-family: 'Poppins', sans-serif;
+            color: #262626;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            width: 100%;
+            background-color: #3897f0; /* Instagram Blue */
+            padding: 10px 20px;
+            border-bottom: 1px solid #e6e6e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+
+        header .logo {
+            font-weight: 600;
+            font-size: 22px;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        header .nav-links {
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        header .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        header .nav-links a:hover {
+            background-color: #ffffff;
+            color: #3897f0;
+        }
+
+        header .nav-links .icon {
+            font-size: 18px;
+        }
+
+        /* Main content container */
+        .main-content {
+            margin-top: 70px;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            padding: 20px;
+            gap: 30px;
+        }
+
+        /* Photo Container */
+        .photos-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 3;
+        }
+
+        .photo-item {
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .photo-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .photo-item img {
+            width: 80%;
+            height: auto;
+            max-width: 600px;
+            border-radius: 10px;
+            object-fit: cover;
+            margin-bottom: 15px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .info {
+            padding: 10px 0;
+        }
+
+        .info h5 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .info p {
+            font-size: 14px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            flex: 1;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+
+        /* Profile Section */
+        .profile {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .profile img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .profile .username {
+            font-weight: 600;
+            font-size: 18px;
+            color: #262626;
+        }
+
+        .profile .bio {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Suggested Users */
+        .suggested-users h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #262626;
+            margin-bottom: 15px;
+        }
+
+        .suggested-users .user {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .suggested-users .user img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .suggested-users .user .name {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Trending Hashtags */
+        .hashtags {
+            margin-top: 30px;
+        }
+
+        .hashtags h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #262626;
+            margin-bottom: 15px;
+        }
+
+        .hashtags .hashtag {
+            font-size: 16px;
+            color: #3897f0;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        /* Stories Section */
+        .stories {
+            margin-top: 30px;
+        }
+
+        .stories h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #262626;
+            margin-bottom: 15px;
+        }
+
+        .stories .story {
+            display: inline-block;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .stories .story img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #3897f0;
+            transition: transform 0.3s ease;
+        }
+
+        .stories .story img:hover {
+            transform: scale(1.1);
+        }
+
+        /* Like, Comment, Share Bar */
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 16px;
+            color: #999;
+            border-top: 1px solid #e6e6e6;
+            padding-top: 10px;
+        }
+
+        .actions span {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .actions span:hover {
+            background-color: #3897f0;
+            color: white;
+        }
+
+        /* Back link */
+        .back-link {
+            margin-top: 40px;
+            font-size: 18px;
+            color: #3897f0;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.3s ease;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+     <header>
+        <div class="logo">My Instagram</div>
+        <div class="nav-links">
+            <a href="/"><i class="fas fa-home icon"></i> Home</a>
+            <a href="/upload"><i class="fas fa-upload icon"></i> Upload</a>
+            <a href="/photos"><i class="fas fa-image icon"></i> Photos</a>
+            <a href="/search"><i class="fas fa-search icon"></i> Search</a>
+            <a href="/notifications"><i class="fas fa-bell icon"></i> Notifications</a>
+            <a href="/profile"><i class="fas fa-user-circle icon"></i> Profile</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="photos-container">
+            <h2>Uploaded Photos</h2>
+            {% for photo in photos %}
+                <div class="photo-item">
+                    <img src="{{ photo.image_url }}" alt="{{ photo.title }}">
+                    <div class="info">
+                        <h5>{{ photo.title }}</h5>
+                        <p>{{ photo.caption }}</p>
+                    </div>
+                    <div class="actions">
+                        <span class="like-btn" data-photo-id="{{ photo.id }}">❤️ Like</span>
+                        <span class="comment-btn" data-photo-id="{{ photo.id }}">💬 Comment</span>
+                        <span class="share-btn">🔗 Share</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="profile">
+                <img src="https://www.w3schools.com/w3images/avatar2.png" alt="Profile">
+                <div>
+                    <div class="username">john_doe</div>
+                    <div class="bio">Photography Enthusiast | Traveler | Creator</div>
+                </div>
+            </div>
+            <div class="suggested-users">
+                <h4>Suggested Users</h4>
+                <div class="user">
+                    <img src="https://www.w3schools.com/w3images/avatar4.png" alt="User">
+                    <div class="name">anna_smith</div>
+                </div>
+                <div class="user">
+                    <img src="https://www.w3schools.com/w3images/avatar6.png" alt="User">
+                    <div class="name">mark_johnson</div>
+                </div>
+            </div>
+            <div class="hashtags">
+                <h4>Trending Hashtags</h4>
+                <div class="hashtag">#Travel</div>
+                <div class="hashtag">#Photography</div>
+                <div class="hashtag">#Adventure</div>
+            </div>
+            <div class="stories">
+                <h4>Stories</h4>
+                <div class="story">
+                    <img src="https://www.w3schools.com/w3images/avatar2.png" alt="Story">
+                </div>
+                <div class="story">
+                    <img src="https://www.w3schools.com/w3images/avatar4.png" alt="Story">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Link -->
+    <a href="/" class="back-link">Back to Homepage</a>
+
+    <!-- Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const photoId = this.getAttribute('data-photo-id');
+                    fetch(`/like/${photoId}`, { method: 'POST' })
+                        .then(res => {
+                            if (res.ok) alert('Photo liked!');
+                            else alert('Error liking photo.');
+                        });
+                });
+            });
+
+            document.querySelectorAll('.comment-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const photoId = this.getAttribute('data-photo-id');
+                    let comment = prompt("Enter your comment:");
+                    if (comment) {
+                        fetch(`/comment/${photoId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: comment })
+                        }).then(res => {
+                            if (res.ok) alert('Comment added!');
+                            else alert('Error posting comment.');
+                        });
+                    }
+                });
+            });
+
+            document.querySelectorAll('.share-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    alert('Share functionality coming soon!');
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
