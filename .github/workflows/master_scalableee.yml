@@ -68,4 +68,4 @@ jobs:
         with:
           app-name: 'scalableee'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_76D01B5711EE4C9FA632B14613A7B037 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3CAD2C672338467F85BA5AE8EDD1809E }}
