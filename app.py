@@ -1,152 +1,177 @@
-import os
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_pymongo import PyMongo
+from flask_bcrypt import Bcrypt
 from flask_login import (
-    LoginManager,
-    login_user,
-    login_required,
-    logout_user,
-    current_user,
-    UserMixin
+    LoginManager, UserMixin,
+    login_user, logout_user,
+    login_required, current_user
 )
-from werkzeug.security import generate_password_hash, check_password_hash
+from bson.objectid import ObjectId
+import os
 
-# ---- App & Config ----
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI']   = 'sqlite:///photos.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER']            = 'static/uploads'
-app.config['SECRET_KEY']               = 'your_secret_key'
+app.secret_key = os.urandom(24)
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.config["MONGO_URI"] = (
+    "mongodb+srv://hadishah786000:hadishah123@cluster0.6c07b.mongodb.net/video_app?retryWrites=true&w=majority&appName=Cluster0"
+)
+mongo = PyMongo(app)
 
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'home'
+bcrypt = Bcrypt(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-# ---- Models ----
-class User(UserMixin, db.Model):
-    id       = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
-    role     = db.Column(db.String(20), nullable=False)
+class User(UserMixin):
+    def __init__(self, user_doc):
+        self.id = str(user_doc['_id'])
+        self.username = user_doc['username']
+        self.role = user_doc['role']
 
-class Photo(db.Model):
-    id        = db.Column(db.Integer, primary_key=True)
-    title     = db.Column(db.String(100))
-    caption   = db.Column(db.String(255))
-    image_url = db.Column(db.String(255))
-    likes     = db.relationship('Like', backref='photo', lazy=True)
-    comments  = db.relationship('Comment', backref='photo', lazy=True)
-
-class Like(db.Model):
-    id       = db.Column(db.Integer, primary_key=True)
-    photo_id = db.Column(db.Integer, db.ForeignKey('photo.id'), nullable=False)
-    user_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user     = db.relationship('User', backref='likes')
-
-class Comment(db.Model):
-    id        = db.Column(db.Integer, primary_key=True)
-    content   = db.Column(db.String(255))
-    photo_id  = db.Column(db.Integer, db.ForeignKey('photo.id'), nullable=False)
-    user_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user      = db.relationship('User', backref='comments')
-
-class Notification(db.Model):
-    id      = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.String(255))
-
-# ---- Login Loader ----
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user_doc = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    return User(user_doc) if user_doc else None
 
-# ---- Routes ----
+@app.route('/')
+def index():
+    return redirect(url_for('consumer_dashboard')) if current_user.is_authenticated else render_template('index.html')
 
-@app.route('/', methods=['GET', 'POST'])
-def home():
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        if mongo.db.users.find_one({'username': username}):
+            return "Username already exists"
+        password = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
+        role = request.form['role']
+        mongo.db.users.insert_one({
+            'username': username,
+            'password': password,
+            'role': role,
+            'following': [],
+            'followers': []
+        })
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        role     = request.form['role']
-        user = User.query.filter_by(username=username, role=role).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            flash('Logged in successfully.', 'success')
-            return redirect(url_for('upload' if role == 'creator' else 'photos'))
-        flash('Invalid credentials or role.', 'danger')
-    return render_template('index.html')
+        user_doc = mongo.db.users.find_one({'username': username})
+        if user_doc and bcrypt.check_password_hash(user_doc['password'], password):
+            login_user(User(user_doc))
+            return redirect(url_for('creator_dashboard' if user_doc['role'] == 'creator' else 'consumer_dashboard'))
+        return "Invalid credentials"
+    return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('home'))
+    return redirect(url_for('index'))
 
-@app.route('/upload', methods=['GET', 'POST'])
+@app.route('/creator', methods=['GET', 'POST'])
 @login_required
-def upload():
+def creator_dashboard():
     if current_user.role != 'creator':
-        flash('Only creators may upload.', 'danger')
-        return redirect(url_for('photos'))
+        return "Access denied"
     if request.method == 'POST':
-        title   = request.form['title']
+        title = request.form['title']
         caption = request.form['caption']
-        file    = request.files['image']
-        if file and file.filename:
-            fn   = secure_filename(file.filename)
-            path = os.path.join(app.config['UPLOAD_FOLDER'], fn)
-            file.save(path)
-            url = f'/static/uploads/{fn}'
-            db.session.add(Photo(title=title, caption=caption, image_url=url))
-            db.session.add(Notification(message=f'New photo uploaded: {title}'))
-            db.session.commit()
-            flash('Photo uploaded!', 'success')
-            return redirect(url_for('photos'))
-        flash('No file selected.', 'danger')
-    return render_template('upload.html')
+        location = request.form['location']
+        people = request.form['people']
+        file = request.files['file']
+        if file and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            filename = file.filename
+            filepath = os.path.join('static/uploads', filename)
+            file.save(filepath)
+            mongo.db.posts.insert_one({
+                'title': title,
+                'caption': caption,
+                'location': location,
+                'people': people,
+                'filename': filename,
+                'creator': current_user.username,
+                'likes': 0
+            })
+        else:
+            return "Only image files are allowed."
+    raw = list(mongo.db.posts.find({'creator': current_user.username}))
+    return render_template('creator.html', posts=raw)
 
-@app.route('/photos')
+@app.route('/consumer')
 @login_required
-def photos():
-    return render_template('photos.html', photos=Photo.query.all())
+def consumer_dashboard():
+    if current_user.role != 'consumer':
+        return "Access denied"
+    raw_posts = list(mongo.db.posts.find())
+    posts = []
+    for post in raw_posts:
+        post['comments_count'] = mongo.db.comments.count_documents({'post_id': str(post['_id'])})
+        post['likes'] = post.get('likes', 0)
+        posts.append(post)
+    user_doc = mongo.db.users.find_one({'_id': ObjectId(current_user.id)})
+    following_docs = mongo.db.users.find({'_id': {'$in': [ObjectId(f) for f in user_doc.get('following', [])]}})
+    followers_docs = mongo.db.users.find({'_id': {'$in': [ObjectId(f) for f in user_doc.get('followers', [])]}})
+    return render_template('consumer.html', posts=posts, following=list(following_docs), followers=list(followers_docs))
 
-@app.route('/like/<int:photo_id>', methods=['POST'])
+@app.route('/post/<post_id>', methods=['GET', 'POST'])
 @login_required
-def like(photo_id):
-    db.session.add(Like(photo_id=photo_id, user_id=current_user.id))
-    db.session.add(Notification(message=f'Photo {photo_id} liked by {current_user.username}'))
-    db.session.commit()
-    return redirect(url_for('photos'))
+def view_post(post_id):
+    post = mongo.db.posts.find_one({'_id': ObjectId(post_id)})
+    if request.method == 'POST':
+        comment = request.form['comment']
+        mongo.db.comments.insert_one({
+            'post_id': post_id,
+            'user': current_user.username,
+            'comment': comment
+        })
+        return redirect(url_for('view_post', post_id=post_id))
+    comments = list(mongo.db.comments.find({'post_id': post_id}))
+    return render_template('view_post.html', post=post, comments=comments)
 
-@app.route('/comment/<int:photo_id>', methods=['POST'])
+@app.route('/like/<post_id>', methods=['POST'])
 @login_required
-def comment(photo_id):
-    text = request.form['comment_content']
-    db.session.add(Comment(photo_id=photo_id, content=text, user_id=current_user.id))
-    db.session.add(Notification(message=f'{current_user.username} commented on {photo_id}: {text}'))
-    db.session.commit()
-    return redirect(url_for('photos'))
+def like_post(post_id):
+    mongo.db.posts.update_one({'_id': ObjectId(post_id)}, {'$inc': {'likes': 1}})
+    return redirect(url_for('consumer_dashboard'))
 
-@app.route('/notifications')
+@app.route('/follow/<user_id>', methods=['POST'])
 @login_required
-def notifications_page():
-    return render_template('notifications.html', notifications=Notification.query.all())
+def follow(user_id):
+    me = ObjectId(current_user.id)
+    them = ObjectId(user_id)
+    mongo.db.users.update_one({'_id': me}, {'$addToSet': {'following': str(them)}})
+    mongo.db.users.update_one({'_id': them}, {'$addToSet': {'followers': str(me)}})
+    return jsonify({'status': 'success'})
 
-# ---- Database Initialization ----
-def create_db_and_seed():
-    db.create_all()
-    if not User.query.filter_by(username='creator1').first():
-        db.session.add(User(username='creator1', password=generate_password_hash('creatorpass'), role='creator'))
-    if not User.query.filter_by(username='consumer1').first():
-        db.session.add(User(username='consumer1', password=generate_password_hash('consumerpass1'), role='consumer'))
-    if not User.query.filter_by(username='consumer2').first():
-        db.session.add(User(username='consumer2', password=generate_password_hash('consumerpass2'), role='consumer'))
-    db.session.commit()
+@app.route('/search', methods=['GET'])
+@login_required
+def search():
+    if current_user.role != 'consumer':
+        return "Access denied"
+    query = request.args.get('query', '').strip()
+    if not query:
+        return redirect(url_for('consumer_dashboard'))
+    search_filter = {
+        '$or': [
+            {'title': {'$regex': query, '$options': 'i'}},
+            {'caption': {'$regex': query, '$options': 'i'}},
+            {'location': {'$regex': query, '$options': 'i'}}
+        ]
+    }
+    raw_posts = list(mongo.db.posts.find(search_filter))
+    posts = []
+    for post in raw_posts:
+        post['comments_count'] = mongo.db.comments.count_documents({'post_id': str(post['_id'])})
+        post['likes'] = post.get('likes', 0)
+        posts.append(post)
+    return render_template('search_results.html', posts=posts, query=query)
 
-# ---- Entry Point ----
 if __name__ == '__main__':
-    with app.app_context():
-        create_db_and_seed()
-    app.run(debug=True)
+    os.makedirs('static/uploads', exist_ok=True)
+    port = int(os.environ.get('PORT', 8000))  # Use PORT env var or default to 8000
+    app.run(host='0.0.0.0', port=port, debug=True)
